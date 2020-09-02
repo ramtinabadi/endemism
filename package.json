@@ -1,0 +1,11 @@
+{
+  "name": "endemism",
+  "version": "0.0.1",
+  "description": "The internal and private registry of node packages",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Ramtin Abadi",
+  "license": "MIT"
+}
