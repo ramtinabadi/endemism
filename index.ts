@@ -7,8 +7,9 @@ import fs from 'fs';
 // Third Party
 import {Command} from "commander";
 
-
-let globalRegistry = os.homedir() + '/.endemism_registry';
+let registryName = '.endemism_registry';
+let globalRegistry = os.homedir() + '/' + registryName
+let projectRegistry = './' + registryName;
 let program = new Command();
 
 
@@ -23,8 +24,39 @@ program
 	.option('-g, --global', "Lists the packages in the global registry", true)
 	.option('-p, --project', "Lists the packages in the project registry", false)	
 	.action((options: {global: boolean, project: boolean}) => {
-		
+		let mode : "global" | "project" = options.project ? "project" : "global";
+
+		if (mode == "global") {
+			console.log(readGlobalRegistry());
+		}else {
+			console.log(readProjectRegistry());
+		}
 	});
 
 
 program.parse(process.argv);
+
+
+
+
+
+
+// Common Functions
+function readGlobalRegistry() {
+	try {
+		let rawData = fs.readFileSync(globalRegistry);
+		return JSON.parse(rawData.toString());
+	} catch (error) {
+		return {};
+	}	
+}
+
+
+function readProjectRegistry() {
+	try {
+		let rawData = fs.readFileSync(projectRegistry);
+		return JSON.parse(rawData.toString());
+	} catch (error) {
+		return {};
+	}
+}
