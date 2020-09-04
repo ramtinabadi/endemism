@@ -25,12 +25,23 @@ program
 	.option('-p, --project', "Lists the packages in the project registry", false)	
 	.action((options: {global: boolean, project: boolean}) => {
 		let mode : "global" | "project" = options.project ? "project" : "global";
+		let data: {[key: string]: RegsitryEntry};
+		
+		// Getting the appropriate registry based on the given option
+		data = mode == "global" ? readGlobalRegistry() : readProjectRegistry();		
 
-		if (mode == "global") {
-			console.log(readGlobalRegistry());
-		}else {
-			console.log(readProjectRegistry());
+		// Inform the user that the registry is empty
+		if (data == null || data == {} || Object.keys(data).length == 0) {
+			console.log(`\n${mode} registry is empty\n`);
+			return;
 		}
+
+		// Displaying the list of packages with their version
+		console.log(`\nPackages registered in the ${mode} registry:`);
+		Object.keys(data).sort().map((packageName: string) => {
+			console.log(`${packageName}=${data[packageName].version}`);
+		});
+		console.log('\n');
 	});
 
 
@@ -73,7 +84,12 @@ type RegsitryEntry = {
 
 
 
-// Common Functions
+// Common Functions ******************************************************
+
+
+/**
+ * Reads and parses the content of the global registry
+ */
 function readGlobalRegistry() {
 	try {
 		let rawData = fs.readFileSync(globalRegistry);
@@ -81,6 +97,19 @@ function readGlobalRegistry() {
 	} catch (error) {
 		return null;
 	}	
+}
+
+
+/**
+ * Reads and parses the content of the current project's registry
+ */
+function readProjectRegistry() {
+	try {
+		let rawData = fs.readFileSync(projectRegistry);
+		return JSON.parse(rawData.toString());
+	} catch (error) {
+		return {};
+	}
 }
 
 
@@ -123,14 +152,7 @@ function registerPackage(name: string, path: string, version: string) {
 }
 
 
-function readProjectRegistry() {
-	try {
-		let rawData = fs.readFileSync(projectRegistry);
-		return JSON.parse(rawData.toString());
-	} catch (error) {
-		return {};
-	}
-}
+
 
 
 
