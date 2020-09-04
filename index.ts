@@ -152,6 +152,29 @@ function registerPackage(name: string, path: string, version: string) {
 }
 
 
+/**
+ * Tries and gets the detail of the current node package from its `package.json` file
+ * If the `package.json` file does not exist or can't be read, the returned value will be null
+ */
+function getProjectDetail() : {name: string, version: string} | null {
+	try {
+		let files = fs.readdirSync('./');
+		if (files.includes('package.json')) {
+			
+			let data = fs.readFileSync('./package.json');
+			let packageDetails = JSON.parse(data.toString());
+			return {name: packageDetails.name, version: packageDetails.version};
+			
+		}else {				
+			return null;
+		}
+
+	} catch (error) {		
+		return null;
+	}
+		
+}
+
 
 
 
