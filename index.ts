@@ -66,25 +66,38 @@ program
 
 
 
-// Unregister
+// Deregister
 program
 	.command('deregister [name]')
-	.description("Deregisters the current node project and removes it from the global registry")
+	.description("Deregisters the current node project (or project with the give name) and removes it from the global registry")
 	.action((name: string) => {
 		let data = readRegistry("global");
+
+		if (data == null) {
+			printError("The target package is not registered");
+			return;
+		}
 		
-		if (name) {
-			if (name in data) {}
+		if (!name) {
+			let projectDetail = getProjectDetail();
+			if (projectDetail == null) {
+				printError("The 'package.json' file could not be found.");
+				console.log("Make sure to call the 'deregister' command only in your node project folder");
+				return;
+			}else {
+				name = projectDetail.name;
+			}			
 		}
 
-		let projectDetail = getProjectDetail();
-
-		if (projectDetail == null) {
-			printError("The 'package.json' file could not be found.");
-			console.log("Make sure to call the 'register' command only in your node project folder");
+		if (name in data) {
+			delete data[name];
+			let success = writeRegistry(data, "global");
+			if (success) printSuccess(`${name} is removed from the global registry`);
+			else printError(`There has been an error in removing ${name} from the global registry`);
 		}else {
-			registerPackage(projectDetail.name, process.cwd(), projectDetail.version);
-		}		
+			printError("The target package is not registered");
+		}
+
 	});
 
 
