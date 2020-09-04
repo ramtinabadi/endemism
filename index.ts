@@ -222,59 +222,72 @@ program
 
 // Update
 program
-	.command('update <name>]')
-	.description("Updating a package installed in the project!")
+	.command('update [name]')
+	.description("Updating a package installed in the project! Pass a name to update a single package.")
 	.action((name: string) => {
-		
-		// Getting the content of the project's registry
-		let projectRegistry = readRegistry("project");
-		let globalRegistry = readRegistry("global");
 
-		// Checking if the target package is in the project's registry
-		if (projectRegistry == null || name in projectRegistry == false) {
-			printError("The target package is either not installed at all or not installed via endemism!");
-			return;
-		}
+		function _update(n: string) {
+			
+			// Getting the content of the project's registry
+			let projectRegistry = readRegistry("project");
+			let globalRegistry = readRegistry("global");
+
+			// Checking if the target package is in the project's registry
+			if (projectRegistry == null || n in projectRegistry == false) {
+				printError(`${n} is either not installed at all or not installed via endemism!`);
+				return;				
+			}
 		
-		// Checking if the package is up to date
-		if (name in globalRegistry == false) {
-			printError(`${name} is not registered in the global registry!`);
-			return;
-		}else {
-			if (projectRegistry[name] == globalRegistry[name].version) {
-				printSuccess(`${name} is already up to date!`);
+			// Checking if the package is up to date
+			if (n in globalRegistry == false) {
+				printError(`${n} is not registered in the global registry!`);
+				return;
+			}else {
+				if (projectRegistry[n] == globalRegistry[n].version) {
+					console.log(`${n} is already up to date!`);					
+					return;
+				}
+			}
+
+			// Checking if the package exists in the node_modules
+			let hasPackage = fs.existsSync(`./node_modules/${n}`);
+			if (!hasPackage) {
+				printError(`There is a discrepancy between the local registry and contents of node_modules. Run 'install ${n}' or 'uninstall ${n}'`);
 				return;
 			}
-		}
-
-		// Checking if the package exists in the node_modules
-		let hasPackage = fs.existsSync(`./node_modules/${name}`);
-		if (!hasPackage) {
-			printError(`There is a discrepancy between the local registry and contents of node_modules. Run 'install ${name}' or 'uninstall ${name}'`);
-			return;
-		}
 		
-		// Removing the old folder
-		try {
-			fse.removeSync(`./node_modules/${name}`);
-		} catch (error) {				
-			printError(`There was an error while updating ${name}`);
-			return;
-		}
+			// Removing the old folder
+			try {
+				fse.removeSync(`./node_modules/${n}`);
+			} catch (error) {				
+				printError(`There was an error while updating ${n}`);
+				return;
+			}
 
-		// Copying the package from the global registry to the project's node_modules
-		let isCopied =  copyPackageToProject(name, globalRegistry);
-		if (!isCopied) {
-			printError(`There was an error while updating ${name}`);
-			return;
-		}
+			// Copying the package from the global registry to the project's node_modules
+			let isCopied = copyPackageToProject(n, globalRegistry);
+			if (!isCopied) {
+				printError(`There was an error while updating ${n}`);
+				return;
+			}
 
-		// Updating the package's version in the project's registry
-		projectRegistry[name] = globalRegistry[name].version;
-		writeRegistry(projectRegistry, "project");
+			// Updating the package's version in the project's registry
+			projectRegistry[n] = globalRegistry[n].version;
+			writeRegistry(projectRegistry, "project");
 
 		
-		printSuccess(`${name} is successfully updated to ${globalRegistry[name].version}!`);
+			printSuccess(`${n} is successfully updated to ${globalRegistry[n].version}!`);
+		}
+		
+		let target = name || 'all';
+		console.log("\nUpdating...");
+
+		if (target != 'all') _update(target);
+		else {
+			let pr = readRegistry("project");
+			Object.keys(pr).map((p: string) => _update(p));
+		}
+		console.log('\n');
 
 	});
 
