@@ -6,6 +6,7 @@ import fs from 'fs';
 
 // Third Party
 import {Command} from "commander";
+import fse from 'fs-extra';
 
 let registryName = '.endemism_registry';
 let globalRegistry = os.homedir() + '/' + registryName
