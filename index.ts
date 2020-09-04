@@ -6,6 +6,7 @@ import fs from 'fs';
 
 // Third Party
 import {Command} from "commander";
+import fse from 'fs-extra';
 
 let registryName = '.endemism_registry';
 let globalRegistry = os.homedir() + '/' + registryName
@@ -39,7 +40,7 @@ program
 		// Displaying the list of packages with their version
 		console.log(`\nPackages registered in the ${mode} registry:`);
 		Object.keys(data).sort().map((packageName: string) => {
-			console.log(`${packageName}=${data[packageName].version}`);
+			console.log(`${packageName}=${mode == "global" ? data[packageName].version: data[packageName]}`);
 		});
 		console.log('\n');
 	});
@@ -99,6 +100,84 @@ program
 		}
 
 	});
+
+
+
+
+
+// install
+program
+	.command('install <name>')
+	.description("Installs a package from the global registry into the current project")
+	.action((name: string) => {
+		let data = readRegistry("global");
+
+		if (data == null || name in data == false) {
+			printError("The target package is not registered");
+			return;
+		}
+
+		let projectDetail = getProjectDetail();
+		if (projectDetail == null) {
+			printError("The current folder is not a node project!");
+			console.log("Make sure to call the 'install' command only on your project folder");
+			return;
+		}
+
+		let projectRegistry = readRegistry("project");
+		if (projectRegistry == null) {
+			let madeProjectRegistry = writeRegistry({}, "project");
+			if (madeProjectRegistry) projectRegistry = readRegistry("project");
+			else {
+				printError("There was an error while reading the project's registry!");
+				return;
+			}			
+		}
+
+		if (data[name] in projectRegistry) {
+			printError("The target package is already installed in the project!");
+			return;
+		}
+
+		let hasNodeModules = fs.existsSync('./node_modules');
+		if (!hasNodeModules) {
+			let madeNodeModules = fs.mkdirSync('./node_modules');
+		}else {
+			let alreadyExistsinNodeModules = fs.existsSync('./node_modules/' + name);
+			if (alreadyExistsinNodeModules) {
+				printError(`A directory called ${name} already exists among node modules!`);
+				return;
+			}
+		}
+
+		fs.readdir(data[name].path, {withFileTypes: true}, (err: NodeJS.ErrnoException | null, files: fs.Dirent[]) => {
+			if (err != null) {
+				printError(`There is an error while reading files!`);
+				return;
+			}
+
+			try {
+				fs.mkdirSync('./node_modules/' + name);	
+			} catch (error) {
+				printError(`There is an error while Installing ${name}`);
+				return;
+			}
+			
+
+			files.map((file:fs.Dirent) => {				
+				if (file.name != '.git' && file.name != '.gitignore') {
+					fse.copySync(data[name].path + "/" + file.name, `./node_modules/${name}/${file.name}`);
+				}
+			});
+
+			projectRegistry[name] = data[name].version;
+			writeRegistry(projectRegistry, "project");
+
+			printSuccess(`${name}=${data[name].version} is successfully installed!`);
+		});
+
+	});
+
 
 
 
