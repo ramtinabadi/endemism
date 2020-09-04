@@ -123,7 +123,32 @@ program
 			return;
 		}
 
-		
+		let projectRegistry = readRegistry("project");
+		if (projectRegistry == null) {
+			let madeProjectRegistry = writeRegistry({}, "project");
+			if (madeProjectRegistry) projectRegistry = readRegistry("project");
+			else {
+				printError("There was an error while reading the project's registry!");
+				return;
+			}			
+		}
+
+		if (data[name] in projectRegistry) {
+			printError("The target package is already installed in the project!");
+			return;
+		}
+
+		let hasNodeModules = fs.existsSync('./node_modules');
+		if (!hasNodeModules) {
+			let madeNodeModules = fs.mkdirSync('./node_modules');
+		}
+
+		fs.readdir(data[name].path, {withFileTypes: true}, (err: NodeJS.ErrnoException | null, files: fs.Dirent[]) => {
+			files.map((file:fs.Dirent) => {
+				
+				console.log(file.name + " => " + file.isDirectory())
+			});
+		});
 
 	});
 
