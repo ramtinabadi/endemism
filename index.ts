@@ -28,7 +28,7 @@ program
 		let data: {[key: string]: RegsitryEntry};
 		
 		// Getting the appropriate registry based on the given option
-		data = mode == "global" ? readGlobalRegistry() : readProjectRegistry();		
+		data = readRegistry(mode);
 
 		// Inform the user that the registry is empty
 		if (data == null || data == {} || Object.keys(data).length == 0) {
@@ -52,19 +52,55 @@ program
 	.command('register')
 	.description("Registers the current node project into the global registry")
 	.action(() => {		
-		fs.readdir('./', (err: NodeJS.ErrnoException | null, files: string[]) => {
-			if (files.includes('package.json')) {
-				fs.readFile('./package.json', (err: NodeJS.ErrnoException | null, data: Buffer) => {
-					let packageDetails = JSON.parse(data.toString());
-					registerPackage(packageDetails.name, process.cwd(), packageDetails.version);
-					
-				});
-			}else {				
-				printError("The 'package.json' file could not be found.");
-				console.log("Make sure to call the 'register' command only in your node project folder");
-			}
-		});
+		let projectDetail = getProjectDetail();
+
+		if (projectDetail == null) {
+			printError("The 'package.json' file could not be found.");
+			console.log("Make sure to call the 'register' command only in your node project folder");
+		}else {
+			registerPackage(projectDetail.name, process.cwd(), projectDetail.version);
+		}		
 	});
+
+
+
+
+
+// Deregister
+program
+	.command('deregister [name]')
+	.description("Deregisters the current node project (or project with the give name) and removes it from the global registry")
+	.action((name: string) => {
+		let data = readRegistry("global");
+
+		if (data == null) {
+			printError("The target package is not registered");
+			return;
+		}
+		
+		if (!name) {
+			let projectDetail = getProjectDetail();
+			if (projectDetail == null) {
+				printError("The 'package.json' file could not be found.");
+				console.log("Make sure to call the 'deregister' command only in your node project folder");
+				return;
+			}else {
+				name = projectDetail.name;
+			}			
+		}
+
+		if (name in data) {
+			delete data[name];
+			let success = writeRegistry(data, "global");
+			if (success) printSuccess(`${name} is removed from the global registry`);
+			else printError(`There has been an error in removing ${name} from the global registry`);
+		}else {
+			printError("The target package is not registered");
+		}
+
+	});
+
+
 
 
 
@@ -90,9 +126,9 @@ type RegsitryEntry = {
 /**
  * Reads and parses the content of the global registry
  */
-function readGlobalRegistry() {
+function readRegistry(mode: "global" | "project") {
 	try {
-		let rawData = fs.readFileSync(globalRegistry);
+		let rawData = fs.readFileSync(mode == "global" ? globalRegistry : projectRegistry);
 		return JSON.parse(rawData.toString());
 	} catch (error) {
 		return null;
@@ -103,12 +139,12 @@ function readGlobalRegistry() {
 /**
  * Reads and parses the content of the current project's registry
  */
-function readProjectRegistry() {
-	try {
-		let rawData = fs.readFileSync(projectRegistry);
-		return JSON.parse(rawData.toString());
+function writeRegistry(data: {[key: string] : string} | string, mode: "global" | "project") : boolean {
+	try {		
+		fs.writeFileSync(mode == "global" ? globalRegistry : projectRegistry, typeof data == 'string' ? data : JSON.stringify(data));
+		return true;
 	} catch (error) {
-		return {};
+		return false;
 	}
 }
 
@@ -121,12 +157,12 @@ function readProjectRegistry() {
  */
 function registerPackage(name: string, path: string, version: string) {
 	// Get the existing data from the registry
-	let data: {[key: string]: RegsitryEntry} = readGlobalRegistry();
+	let data: {[key: string]: RegsitryEntry} = readRegistry("global");
 	
 	// Create a registry if it cannot be found
 	if (data == null) {
 		fs.writeFileSync(globalRegistry, JSON.stringify({}));
-		data = readGlobalRegistry();
+		data = readRegistry("global");
 	}
 
 	// Checking if the package is already registered or not
@@ -151,6 +187,29 @@ function registerPackage(name: string, path: string, version: string) {
 	});
 }
 
+
+/**
+ * Tries and gets the detail of the current node package from its `package.json` file
+ * If the `package.json` file does not exist or can't be read, the returned value will be null
+ */
+function getProjectDetail() : {name: string, version: string} | null {
+	try {
+		let files = fs.readdirSync('./');
+		if (files.includes('package.json')) {
+			
+			let data = fs.readFileSync('./package.json');
+			let packageDetails = JSON.parse(data.toString());
+			return {name: packageDetails.name, version: packageDetails.version};
+			
+		}else {				
+			return null;
+		}
+
+	} catch (error) {		
+		return null;
+	}
+		
+}
 
 
 
