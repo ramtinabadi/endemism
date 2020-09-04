@@ -28,7 +28,7 @@ program
 		let data: {[key: string]: RegsitryEntry};
 		
 		// Getting the appropriate registry based on the given option
-		data = mode == "global" ? readGlobalRegistry() : readProjectRegistry();		
+		data = readRegistry(mode);
 
 		// Inform the user that the registry is empty
 		if (data == null || data == {} || Object.keys(data).length == 0) {
@@ -64,6 +64,33 @@ program
 
 
 
+
+
+// Unregister
+program
+	.command('deregister [name]')
+	.description("Deregisters the current node project and removes it from the global registry")
+	.action((name: string) => {
+		let data = readRegistry("global");
+		
+		if (name) {
+			if (name in data) {}
+		}
+
+		let projectDetail = getProjectDetail();
+
+		if (projectDetail == null) {
+			printError("The 'package.json' file could not be found.");
+			console.log("Make sure to call the 'register' command only in your node project folder");
+		}else {
+			registerPackage(projectDetail.name, process.cwd(), projectDetail.version);
+		}		
+	});
+
+
+
+
+
 program.parse(process.argv);
 
 
@@ -86,9 +113,9 @@ type RegsitryEntry = {
 /**
  * Reads and parses the content of the global registry
  */
-function readGlobalRegistry() {
+function readRegistry(mode: "global" | "project") {
 	try {
-		let rawData = fs.readFileSync(globalRegistry);
+		let rawData = fs.readFileSync(mode == "global" ? globalRegistry : projectRegistry);
 		return JSON.parse(rawData.toString());
 	} catch (error) {
 		return null;
@@ -99,12 +126,12 @@ function readGlobalRegistry() {
 /**
  * Reads and parses the content of the current project's registry
  */
-function readProjectRegistry() {
-	try {
-		let rawData = fs.readFileSync(projectRegistry);
-		return JSON.parse(rawData.toString());
+function writeRegistry(data: {[key: string] : string} | string, mode: "global" | "project") : boolean {
+	try {		
+		fs.writeFileSync(mode == "global" ? globalRegistry : projectRegistry, typeof data == 'string' ? data : JSON.stringify(data));
+		return true;
 	} catch (error) {
-		return {};
+		return false;
 	}
 }
 
@@ -117,12 +144,12 @@ function readProjectRegistry() {
  */
 function registerPackage(name: string, path: string, version: string) {
 	// Get the existing data from the registry
-	let data: {[key: string]: RegsitryEntry} = readGlobalRegistry();
+	let data: {[key: string]: RegsitryEntry} = readRegistry("global");
 	
 	// Create a registry if it cannot be found
 	if (data == null) {
 		fs.writeFileSync(globalRegistry, JSON.stringify({}));
-		data = readGlobalRegistry();
+		data = readRegistry("global");
 	}
 
 	// Checking if the package is already registered or not
