@@ -104,6 +104,34 @@ program
 
 
 
+// install
+program
+	.command('install <name>')
+	.description("Installs a package from the global registry into the current project")
+	.action((name: string) => {
+		let data = readRegistry("global");
+
+		if (data == null || name in data == false) {
+			printError("The target package is not registered");
+			return;
+		}
+
+		let projectDetail = getProjectDetail();
+		if (projectDetail == null) {
+			printError("The current folder is not a node project!");
+			console.log("Make sure to call the 'install' command only on your project folder");
+			return;
+		}
+
+		
+
+	});
+
+
+
+
+
+
 program.parse(process.argv);
 
 
