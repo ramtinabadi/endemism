@@ -141,6 +141,12 @@ program
 		let hasNodeModules = fs.existsSync('./node_modules');
 		if (!hasNodeModules) {
 			let madeNodeModules = fs.mkdirSync('./node_modules');
+		}else {
+			let alreadyExistsinNodeModules = fs.existsSync('./node_modules/' + name);
+			if (alreadyExistsinNodeModules) {
+				printError(`A directory called ${name} already exists among node modules!`);
+				return;
+			}
 		}
 
 		fs.readdir(data[name].path, {withFileTypes: true}, (err: NodeJS.ErrnoException | null, files: fs.Dirent[]) => {
