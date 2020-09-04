@@ -52,18 +52,14 @@ program
 	.command('register')
 	.description("Registers the current node project into the global registry")
 	.action(() => {		
-		fs.readdir('./', (err: NodeJS.ErrnoException | null, files: string[]) => {
-			if (files.includes('package.json')) {
-				fs.readFile('./package.json', (err: NodeJS.ErrnoException | null, data: Buffer) => {
-					let packageDetails = JSON.parse(data.toString());
-					registerPackage(packageDetails.name, process.cwd(), packageDetails.version);
-					
-				});
-			}else {				
-				printError("The 'package.json' file could not be found.");
-				console.log("Make sure to call the 'register' command only in your node project folder");
-			}
-		});
+		let projectDetail = getProjectDetail();
+
+		if (projectDetail == null) {
+			printError("The 'package.json' file could not be found.");
+			console.log("Make sure to call the 'register' command only in your node project folder");
+		}else {
+			registerPackage(projectDetail.name, process.cwd(), projectDetail.version);
+		}		
 	});
 
 
