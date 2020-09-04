@@ -236,6 +236,7 @@ program
 			return;
 		}
 		
+		// Checking if the package is up to date
 		if (name in globalRegistry == false) {
 			printError(`${name} is not registered in the global registry!`);
 			return;
@@ -253,7 +254,7 @@ program
 			return;
 		}
 		
-		
+		// Removing the old folder
 		try {
 			fse.removeSync(`./node_modules/${name}`);
 		} catch (error) {				
@@ -261,13 +262,14 @@ program
 			return;
 		}
 
+		// Copying the package from the global registry to the project's node_modules
 		let isCopied =  copyPackageToProject(name, globalRegistry);
 		if (!isCopied) {
 			printError(`There was an error while updating ${name}`);
 			return;
 		}
 
-		// Removing the package from the project's entry
+		// Updating the package's version in the project's registry
 		projectRegistry[name] = globalRegistry[name].version;
 		writeRegistry(projectRegistry, "project");
 
