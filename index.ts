@@ -91,17 +91,34 @@ function readGlobalRegistry() {
  * @param version The version of the package
  */
 function registerPackage(name: string, path: string, version: string) {
+	// Get the existing data from the registry
 	let data: {[key: string]: RegsitryEntry} = readGlobalRegistry();
+	
+	// Create a registry if it cannot be found
 	if (data == null) {
 		fs.writeFileSync(globalRegistry, JSON.stringify({}));
 		data = readGlobalRegistry();
 	}
-	data[name] = {
-		path: path,
-		version: version
+
+	// Checking if the package is already registered or not
+	if (name in data) {
+
+		// Check if the package has the same version number or not.
+		if (data[name].version == version) {
+			printSuccess("The package is already registered!");
+			return;
+		}
+		else data[name].version = version;
+	}else {
+		// Adding the package to the registry for the first time
+		data[name] = {
+			path: path,
+			version: version
+		}
 	}
+	
 	fs.writeFile(globalRegistry, JSON.stringify(data), () => {
-		printSuccess(`'${name}' is successfully registered to the registry!`);		
+		printSuccess(`'${name}=${version}' is successfully registered to the registry!`);		
 	});
 }
 
