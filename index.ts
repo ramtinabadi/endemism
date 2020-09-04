@@ -151,10 +151,29 @@ program
 		}
 
 		fs.readdir(data[name].path, {withFileTypes: true}, (err: NodeJS.ErrnoException | null, files: fs.Dirent[]) => {
-			files.map((file:fs.Dirent) => {
-				
-				console.log(file.name + " => " + file.isDirectory())
+			if (err != null) {
+				printError(`There is an error while reading files!`);
+				return;
+			}
+
+			try {
+				fs.mkdirSync('./node_modules/' + name);	
+			} catch (error) {
+				printError(`There is an error while Installing ${name}`);
+				return;
+			}
+			
+
+			files.map((file:fs.Dirent) => {				
+				if (file.name != '.git' && file.name != '.gitignore') {
+					fse.copySync(data[name].path + "/" + file.name, `./node_modules/${name}/${file.name}`);
+				}
 			});
+
+			projectRegistry[name] = data[name].version;
+			writeRegistry(projectRegistry, "project");
+
+			printSuccess(`${name}=${data[name].version} is successfully installed!`);
 		});
 
 	});
