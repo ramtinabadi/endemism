@@ -220,6 +220,122 @@ program
 
 
 
+// Update
+program
+	.command('update [name]')
+	.description("Updating a package installed in the project! Pass a name to update a single package.")
+	.option('-g, --global', "Passing this flag will update the versions of packages in the global registry.", false)
+	.option('-a, --all', "Passing this flag will update global registry first and then the project registry. Passing this flag will cause endemism to ignore the name", false)
+	.action((name: string, options: {global: boolean, all: boolean}) => {
+
+		function _updateProject(n: string, projectRegistry: any) {
+			
+			// Getting the content of the global's registry			
+			let globalRegistry = readRegistry("global");
+
+			// Checking if the target package is in the project's registry
+			if (projectRegistry == null || n in projectRegistry == false) {
+				printError(`${n} is either not installed at all or not installed via endemism!`);
+				return;				
+			}
+		
+			// Checking if the package is up to date
+			if (n in globalRegistry == false) {
+				printError(`${n} is not registered in the global registry!`);
+				return;
+			}else {
+				if (projectRegistry[n] == globalRegistry[n].version) {
+					console.log(`${n} is already up to date!`);					
+					return;
+				}
+			}
+
+			// Checking if the package exists in the node_modules
+			let hasPackage = fs.existsSync(`./node_modules/${n}`);
+			if (!hasPackage) {
+				printError(`There is a discrepancy between the local registry and contents of node_modules. Run 'install ${n}' or 'uninstall ${n}'`);
+				return;
+			}
+		
+			// Removing the old folder
+			try {
+				fse.removeSync(`./node_modules/${n}`);
+			} catch (error) {				
+				printError(`There was an error while updating ${n}`);
+				return;
+			}
+
+			// Copying the package from the global registry to the project's node_modules
+			let isCopied = copyPackageToProject(n, globalRegistry);
+			if (!isCopied) {
+				printError(`There was an error while updating ${n}`);
+				return;
+			}
+
+			// Updating the package's version in the project's registry
+			projectRegistry[n] = globalRegistry[n].version;
+			writeRegistry(projectRegistry, "project");
+
+		
+			printSuccess(`${n} is successfully updated to ${globalRegistry[n].version}!`);
+		}
+
+
+		function _updateGlobal(n: string, globalRegistry: any) {			
+			
+			let pd = getProjectDetail(globalRegistry[n].path);
+			if (globalRegistry[n].version == pd?.version) {
+				console.log(`${n} is already up to date in the global registry!`);
+				return
+			}
+			globalRegistry[n].version = pd == null ? globalRegistry[n].version : pd.version;
+			writeRegistry(globalRegistry, "global");
+
+			printSuccess(`${n} is successfully updated in the global registry!`);
+		}
+
+		
+		let target = name || 'all';
+		let global = (options.all || options.global) ? true : false;
+		let project = (options.all || !options.global) ? true : false;	
+		
+		if (options.all) target = 'all';
+
+		if (global) {
+			console.log("\nUpdating global registry...");
+			let gr = readRegistry("global");
+			
+			if (gr == null) {
+				console.log("Global's registry is empty");				
+			}else {
+				if (target != "all") _updateGlobal(target, gr);
+				else {				
+					Object.keys(gr).map((p: string) => _updateGlobal(p, gr));
+				}
+			}			
+		}
+		
+		if (project) {
+			console.log("\nUpdating project registry...");
+			let pr = readRegistry("project");
+			
+			if (pr == null) {
+				console.log("Project's registry is empty");
+			}else {
+				if (target != 'all') _updateProject(target, pr);
+				else {				
+					Object.keys(pr).map((p: string) => _updateProject(p, pr));
+				}
+			}		
+		}
+		
+		console.log('\n');
+
+	});
+
+
+
+
 
 
 program.parse(process.argv);
@@ -310,12 +426,12 @@ function registerPackage(name: string, path: string, version: string) {
  * Tries and gets the detail of the current node package from its `package.json` file
  * If the `package.json` file does not exist or can't be read, the returned value will be null
  */
-function getProjectDetail() : {name: string, version: string} | null {
+function getProjectDetail(path: string = './') : {name: string, version: string} | null {
 	try {
-		let files = fs.readdirSync('./');
+		let files = fs.readdirSync(path);
 		if (files.includes('package.json')) {
-			
-			let data = fs.readFileSync('./package.json');
+			let packageJSONPath = path[path.length - 1] == '/' ? `${path}package.json` : `${path}/package.json`;
+			let data = fs.readFileSync(packageJSONPath);
 			let packageDetails = JSON.parse(data.toString());
 			return {name: packageDetails.name, version: packageDetails.version};
 			
@@ -327,6 +443,31 @@ function getProjectDetail() : {name: string, version: string} | null {
 		return null;
 	}
 		
+}
+
+
+
+/**
+ * Copies a package from the global registry into the project's node_modules
+ * @param name The name of the target package
+ * @param data The content of the global registry
+ */
+function copyPackageToProject(name: string, data: {[key: string]: RegsitryEntry}): boolean {
+
+	try {
+		let files: fs.Dirent[] = fs.readdirSync(data[name].path, {withFileTypes: true});
+		fs.mkdirSync('./node_modules/' + name);	
+
+		files.map((file:fs.Dirent) => {				
+			if (file.name != '.git' && file.name != '.gitignore') {
+				fse.copySync(data[name].path + "/" + file.name, `./node_modules/${name}/${file.name}`);
+			}
+		});
+
+		return true;
+	} catch (error) {
+		return false;
+	}
 }
 
 
