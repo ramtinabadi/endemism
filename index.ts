@@ -296,27 +296,37 @@ program
 
 		
 		let target = name || 'all';
-		let global = options.all || options.global ? true : false;
-		let project = options.all || !options.global ? true : false;	
+		let global = (options.all || options.global) ? true : false;
+		let project = (options.all || !options.global) ? true : false;	
 		
 		if (options.all) target = 'all';
 
 		if (global) {
 			console.log("\nUpdating global registry...");
 			let gr = readRegistry("global");
-			if (target != "all") _updateGlobal(target, gr);
-			else {				
-				Object.keys(gr).map((p: string) => _updateGlobal(p, gr));
-			}
+			
+			if (gr == null) {
+				console.log("Global's registry is empty");				
+			}else {
+				if (target != "all") _updateGlobal(target, gr);
+				else {				
+					Object.keys(gr).map((p: string) => _updateGlobal(p, gr));
+				}
+			}			
 		}
 		
 		if (project) {
 			console.log("\nUpdating project registry...");
 			let pr = readRegistry("project");
-			if (target != 'all') _updateProject(target, pr);
-			else {				
-				Object.keys(pr).map((p: string) => _updateProject(p, pr));
-			}
+			
+			if (pr == null) {
+				console.log("Project's registry is empty");
+			}else {
+				if (target != 'all') _updateProject(target, pr);
+				else {				
+					Object.keys(pr).map((p: string) => _updateProject(p, pr));
+				}
+			}		
 		}
 		
 		console.log('\n');
@@ -420,8 +430,8 @@ function getProjectDetail(path: string = './') : {name: string, version: string}
 	try {
 		let files = fs.readdirSync(path);
 		if (files.includes('package.json')) {
-			
-			let data = fs.readFileSync('./package.json');
+			let packageJSONPath = path[path.length - 1] == '/' ? `${path}package.json` : `${path}/package.json`;
+			let data = fs.readFileSync(packageJSONPath);
 			let packageDetails = JSON.parse(data.toString());
 			return {name: packageDetails.name, version: packageDetails.version};
 			
