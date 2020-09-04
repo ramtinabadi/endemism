@@ -182,6 +182,45 @@ program
 
 
 
+// Uninstall
+program
+	.command('uninstall <name>')
+	.description("Uninstalls a package from the current project")
+	.action((name: string) => {
+		
+		// Getting the content of the project's registry
+		let data = readRegistry("project");
+
+		// Checking if the target package is in the project's registry
+		if (data == null || name in data == false) {
+			printError("The target package is either not installed at all or not installed via endemism!");
+			return;
+		}
+
+		// Deleting the package folder from node_modules
+		let hasPackage = fs.existsSync(`./node_modules/${name}`);
+		if (hasPackage) {
+			try {
+				fse.removeSync(`./node_modules/${name}`);
+			} catch (error) {				
+				printError(`There was an error while uninstalling ${name}`);
+				return;
+			}			
+		}
+
+		// Removing the package from the project's entry
+		delete data[name];
+		writeRegistry(data, "project");
+
+		
+		printSuccess(`${name} is successfully uninstalled!`);
+
+	});
+
+
+
+
+
 
 program.parse(process.argv);
 
