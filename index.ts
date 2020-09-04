@@ -224,12 +224,13 @@ program
 program
 	.command('update [name]')
 	.description("Updating a package installed in the project! Pass a name to update a single package.")
-	.action((name: string) => {
+	.option('-g, --global', "Passing this flag will update the versions of packages in the global registry.", false)
+	.option('-a, --all', "Passing this flag will update global registry first and then the project registry. Passing this flag will cause endemism to ignore the name", false)
+	.action((name: string, options: {global: boolean, all: boolean}) => {
 
-		function _update(n: string) {
+		function _updateProject(n: string, projectRegistry: any) {
 			
-			// Getting the content of the project's registry
-			let projectRegistry = readRegistry("project");
+			// Getting the content of the global's registry			
 			let globalRegistry = readRegistry("global");
 
 			// Checking if the target package is in the project's registry
@@ -278,15 +279,46 @@ program
 		
 			printSuccess(`${n} is successfully updated to ${globalRegistry[n].version}!`);
 		}
+
+
+		function _updateGlobal(n: string, globalRegistry: any) {			
+			
+			let pd = getProjectDetail(globalRegistry[n].path);
+			if (globalRegistry[n].version == pd?.version) {
+				console.log(`${n} is already up to date in the global registry!`);
+				return
+			}
+			globalRegistry[n].version = pd == null ? globalRegistry[n].version : pd.version;
+			writeRegistry(globalRegistry, "global");
+
+			printSuccess(`${n} is successfully updated in the global registry!`);
+		}
+
 		
 		let target = name || 'all';
-		console.log("\nUpdating...");
+		let global = options.all || options.global ? true : false;
+		let project = options.all || !options.global ? true : false;	
+		
+		if (options.all) target = 'all';
 
-		if (target != 'all') _update(target);
-		else {
-			let pr = readRegistry("project");
-			Object.keys(pr).map((p: string) => _update(p));
+		if (global) {
+			console.log("\nUpdating global registry...");
+			let gr = readRegistry("global");
+			if (target != "all") _updateGlobal(target, gr);
+			else {				
+				Object.keys(gr).map((p: string) => _updateGlobal(p, gr));
+			}
 		}
+		
+		if (project) {
+			console.log("\nUpdating project registry...");
+			let pr = readRegistry("project");
+			if (target != 'all') _updateProject(target, pr);
+			else {				
+				Object.keys(pr).map((p: string) => _updateProject(p, pr));
+			}
+		}
+		
 		console.log('\n');
 
 	});
@@ -384,9 +416,9 @@ function registerPackage(name: string, path: string, version: string) {
  * Tries and gets the detail of the current node package from its `package.json` file
  * If the `package.json` file does not exist or can't be read, the returned value will be null
  */
-function getProjectDetail() : {name: string, version: string} | null {
+function getProjectDetail(path: string = './') : {name: string, version: string} | null {
 	try {
-		let files = fs.readdirSync('./');
+		let files = fs.readdirSync(path);
 		if (files.includes('package.json')) {
 			
 			let data = fs.readFileSync('./package.json');
