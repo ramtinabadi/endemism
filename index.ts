@@ -34,8 +34,40 @@ program
 	});
 
 
+
+
+// Register
+program
+	.command('register')
+	.description("Registers the current node project into the global registry")
+	.action(() => {		
+		fs.readdir('./', (err: NodeJS.ErrnoException | null, files: string[]) => {
+			if (files.includes('package.json')) {
+				fs.readFile('./package.json', (err: NodeJS.ErrnoException | null, data: Buffer) => {
+					let packageDetails = JSON.parse(data.toString());
+					registerPackage(packageDetails.name, process.cwd(), packageDetails.version);
+					
+				});
+			}else {				
+				printError("The 'package.json' file could not be found.");
+				console.log("Make sure to call the 'register' command only in your node project folder");
+			}
+		});
+	});
+
+
+
 program.parse(process.argv);
 
+
+
+
+
+// Types
+type RegsitryEntry = {
+	path: string,
+	version: string
+}
 
 
 
@@ -47,8 +79,30 @@ function readGlobalRegistry() {
 		let rawData = fs.readFileSync(globalRegistry);
 		return JSON.parse(rawData.toString());
 	} catch (error) {
-		return {};
+		return null;
 	}	
+}
+
+
+/**
+ * Registers a package into the global registry
+ * @param name The name of package to be registered in the registry
+ * @param path The absolute path of package
+ * @param version The version of the package
+ */
+function registerPackage(name: string, path: string, version: string) {
+	let data: {[key: string]: RegsitryEntry} = readGlobalRegistry();
+	if (data == null) {
+		fs.writeFileSync(globalRegistry, JSON.stringify({}));
+		data = readGlobalRegistry();
+	}
+	data[name] = {
+		path: path,
+		version: version
+	}
+	fs.writeFile(globalRegistry, JSON.stringify(data), () => {
+		printSuccess(`'${name}' is successfully registered to the registry!`);		
+	});
 }
 
 
@@ -59,4 +113,28 @@ function readProjectRegistry() {
 	} catch (error) {
 		return {};
 	}
+}
+
+
+
+
+// Debuging Functions
+
+/**
+ * Prints an error message to the console with the red font color
+ * @param error The error message to be printed in the console
+ */
+function printError(error: string) {
+	// Follows this: https://stackoverflow.com/a/27111061/6026516
+	console.error('\x1b[31m', error ,'\x1b[0m');
+}
+
+
+/**
+ * Prints an success message to the console with the green font color
+ * @param success The success message to be printed in the console
+ */
+function printSuccess(success: string) {
+	// Follows this: https://stackoverflow.com/a/27111061/6026516
+	console.error('\x1b[32m', success ,'\x1b[0m');
 }
