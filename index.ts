@@ -40,7 +40,7 @@ program
 		// Displaying the list of packages with their version
 		console.log(`\nPackages registered in the ${mode} registry:`);
 		Object.keys(data).sort().map((packageName: string) => {
-			console.log(`${packageName}=${data[packageName].version}`);
+			console.log(`${packageName}=${mode == "global" ? data[packageName].version: data[packageName]}`);
 		});
 		console.log('\n');
 	});
