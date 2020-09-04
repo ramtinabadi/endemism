@@ -236,6 +236,15 @@ program
 			return;
 		}
 		
+		if (name in globalRegistry == false) {
+			printError(`${name} is not registered in the global registry!`);
+			return;
+		}else {
+			if (projectRegistry[name] == globalRegistry[name].version) {
+				printSuccess(`${name} is already up to date!`);
+				return;
+			}
+		}
 
 		// Checking if the package exists in the node_modules
 		let hasPackage = fs.existsSync(`./node_modules/${name}`);
