@@ -220,6 +220,56 @@ program
 
 
 
+// Update
+program
+	.command('update <name>]')
+	.description("Updating a package installed in the project!")
+	.action((name: string) => {
+		
+		// Getting the content of the project's registry
+		let projectRegistry = readRegistry("project");
+		let globalRegistry = readRegistry("global");
+
+		// Checking if the target package is in the project's registry
+		if (projectRegistry == null || name in projectRegistry == false) {
+			printError("The target package is either not installed at all or not installed via endemism!");
+			return;
+		}
+		
+
+		// Checking if the package exists in the node_modules
+		let hasPackage = fs.existsSync(`./node_modules/${name}`);
+		if (!hasPackage) {
+			printError(`There is a discrepancy between the local registry and contents of node_modules. Run 'install ${name}' or 'uninstall ${name}'`);
+			return;
+		}
+		
+		
+		try {
+			fse.removeSync(`./node_modules/${name}`);
+		} catch (error) {				
+			printError(`There was an error while updating ${name}`);
+			return;
+		}
+
+		let isCopied =  copyPackageToProject(name, globalRegistry);
+		if (!isCopied) {
+			printError(`There was an error while updating ${name}`);
+			return;
+		}
+
+		// Removing the package from the project's entry
+		projectRegistry[name] = globalRegistry[name].version;
+		writeRegistry(projectRegistry, "project");
+
+		
+		printSuccess(`${name} is successfully updated to ${globalRegistry[name].version}!`);
+
+	});
+
+
+
+
 
 
 program.parse(process.argv);
@@ -327,6 +377,31 @@ function getProjectDetail() : {name: string, version: string} | null {
 		return null;
 	}
 		
+}
+
+
+
+/**
+ * Copies a package from the global registry into the project's node_modules
+ * @param name The name of the target package
+ * @param data The content of the global registry
+ */
+function copyPackageToProject(name: string, data: {[key: string]: RegsitryEntry}): boolean {
+
+	try {
+		let files: fs.Dirent[] = fs.readdirSync(data[name].path, {withFileTypes: true});
+		fs.mkdirSync('./node_modules/' + name);	
+
+		files.map((file:fs.Dirent) => {				
+			if (file.name != '.git' && file.name != '.gitignore') {
+				fse.copySync(data[name].path + "/" + file.name, `./node_modules/${name}/${file.name}`);
+			}
+		});
+
+		return true;
+	} catch (error) {
+		return false;
+	}
 }
 
 
