@@ -1,4 +1,4 @@
-# Endemism 0.0.1
+# Endemism 0.1.0
 
 Endemism is a CLI meant to install internal and private utility node packages into any number of projects that you wish. <br>
 The package is meant to facilitate you create a private package and use that package in multiple projects without uploading it to NPM or manually copy it.
