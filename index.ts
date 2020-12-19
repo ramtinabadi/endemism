@@ -20,7 +20,9 @@ import {
 	registerPackage,
 	RegsitryEntry,
 	writeRegistry,
-	doesPackageExists
+	doesPackageExists,
+	getProjectPackagePath,
+	removeProjectPackage
 } from './utils';
 
 
@@ -224,15 +226,10 @@ program
 			return;
 		}
 
-		// Deleting the package folder from node_modules
-		let hasPackage = fs.existsSync(`./node_modules/${name}`);
-		if (hasPackage) {
-			try {
-				fse.removeSync(`./node_modules/${name}`);
-			} catch (error) {				
-				printError(`There was an error while uninstalling ${name}`);
-				return;
-			}			
+		let deleted = removeProjectPackage(name);
+
+		if (!deleted) {
+			return;
 		}
 
 		// Removing the package from the project's entry

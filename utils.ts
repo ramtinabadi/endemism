@@ -118,6 +118,23 @@ export function doesPackageExists(name: string, makeNodeModules: boolean) {
 
 
 
+export function removeProjectPackage(name: string) {
+    let path = getProjectPackagePath(name);
+	let hasPackage = fs.existsSync(path);
+	if (hasPackage) {
+		try {
+            fse.removeSync(path);
+            return true;
+		} catch (error) {				
+			printError(`There was an error while uninstalling ${name}`);
+			return false;
+		}			
+    }
+    return false;
+}
+
+
+
 export function getProjectPackagePath(name: string) {
     return './node_modules/' + name[0] == "@" ? `${name.split('/')[0]}/${name}` : name;
 }
