@@ -128,7 +128,7 @@ function removeProjectPackage(name) {
 }
 exports.removeProjectPackage = removeProjectPackage;
 function getProjectPackagePath(name) {
-    return './node_modules/' + (name[0] == "@" ? name.split('/')[0] + "/" + name : name);
+    return './node_modules/' + name;
 }
 exports.getProjectPackagePath = getProjectPackagePath;
 /**
@@ -139,6 +139,13 @@ exports.getProjectPackagePath = getProjectPackagePath;
 function copyPackageToProject(name, data) {
     try {
         var files = fs_1.default.readdirSync(data[name].path, { withFileTypes: true });
+        if (name[0] == '@') {
+            var scopedPath = './node_modules/' + name.split('/')[0];
+            var e = fs_1.default.existsSync(scopedPath);
+            if (!e) {
+                fs_1.default.mkdirSync(scopedPath);
+            }
+        }
         fs_1.default.mkdirSync(getProjectPackagePath(name));
         files.map(function (file) {
             if (file.name != '.git' && file.name != '.gitignore') {
@@ -148,6 +155,7 @@ function copyPackageToProject(name, data) {
         return true;
     }
     catch (error) {
+        console.log(error);
         return false;
     }
 }

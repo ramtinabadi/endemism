@@ -100,7 +100,7 @@ program
         // Copying the package from the global registry to the project's node_modules
         var isCopied = utils_1.copyPackageToProject(n, gr);
         if (!isCopied) {
-            utils_1.printError("There was an error while updating " + n);
+            utils_1.printError("There was an error while installing " + n);
             return pr;
         }
         // Updating the package's version in the project's registry
@@ -108,6 +108,7 @@ program
         utils_1.printSuccess(n + "=" + gr[n].version + " is successfully installed!");
         return pr;
     }
+    console.log("Installing...");
     // Reading the global registry
     var data = utils_1.readRegistry("global", globalRegistryURL, projectRegistryURL);
     if (data == null) {
@@ -153,6 +154,7 @@ program
     .command('uninstall <name>')
     .description("Uninstalls a package from the current project")
     .action(function (name) {
+    console.log("Uninstalling...");
     // Getting the content of the project's registry
     var data = utils_1.readRegistry("project", globalRegistryURL, projectRegistryURL);
     // Checking if the target package is in the project's registry

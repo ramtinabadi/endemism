@@ -137,7 +137,7 @@ export function removeProjectPackage(name: string) {
 
 
 export function getProjectPackagePath(name: string) {
-    return './node_modules/' + (name[0] == "@" ? `${name.split('/')[0]}/${name}` : name);
+    return './node_modules/' + name;
 }
 
 
@@ -150,7 +150,16 @@ export function getProjectPackagePath(name: string) {
 export function copyPackageToProject(name: string, data: {[key: string]: RegsitryEntry}): boolean {
 
 	try {
-		let files: fs.Dirent[] = fs.readdirSync(data[name].path, {withFileTypes: true});
+        let files: fs.Dirent[] = fs.readdirSync(data[name].path, {withFileTypes: true});            
+
+        if (name[0] == '@') {
+            let scopedPath = './node_modules/' + name.split('/')[0];
+            let e = fs.existsSync(scopedPath);
+            if (!e) {
+                fs.mkdirSync(scopedPath);
+            }
+        }
+        
 		fs.mkdirSync(getProjectPackagePath(name));	
 
 		files.map((file:fs.Dirent) => {				
@@ -161,6 +170,7 @@ export function copyPackageToProject(name: string, data: {[key: string]: Regsitr
 
 		return true;
 	} catch (error) {
+        console.log(error);
 		return false;
 	}
 }

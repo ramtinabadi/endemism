@@ -144,7 +144,7 @@ program
 			// Copying the package from the global registry to the project's node_modules
 			let isCopied = copyPackageToProject(n, gr);
 			if (!isCopied) {
-				printError(`There was an error while updating ${n}`);
+				printError(`There was an error while installing ${n}`);
 				return pr;
 			}
 
@@ -156,6 +156,7 @@ program
 			
 		}
 
+		console.log("Installing...");
 
 		// Reading the global registry
 		let data = readRegistry("global", globalRegistryURL, projectRegistryURL);
@@ -217,6 +218,8 @@ program
 	.description("Uninstalls a package from the current project")
 	.action((name: string) => {
 		
+		console.log("Uninstalling...");
+
 		// Getting the content of the project's registry
 		let data = readRegistry("project", globalRegistryURL, projectRegistryURL);
 
