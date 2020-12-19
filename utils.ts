@@ -150,11 +150,11 @@ export function copyPackageToProject(name: string, data: {[key: string]: Regsitr
 
 	try {
 		let files: fs.Dirent[] = fs.readdirSync(data[name].path, {withFileTypes: true});
-		fs.mkdirSync('./node_modules/' + name);	
+		fs.mkdirSync(getProjectPackagePath(name));	
 
 		files.map((file:fs.Dirent) => {				
 			if (file.name != '.git' && file.name != '.gitignore') {
-				fse.copySync(data[name].path + "/" + file.name, `./node_modules/${name}/${file.name}`);
+				fse.copySync(data[name].path + "/" + file.name, `${getProjectPackagePath(name)}/${file.name}`);
 			}
 		});
 

@@ -275,16 +275,15 @@ program
 			}
 
 			// Checking if the package exists in the node_modules
-			let hasPackage = fs.existsSync(`./node_modules/${n}`);
+			let hasPackage = doesPackageExists(n, false);
 			if (!hasPackage) {
 				printError(`There is a discrepancy between the local registry and contents of node_modules. Run 'install ${n}' or 'uninstall ${n}'`);
 				return;
 			}
-		
+
 			// Removing the old folder
-			try {
-				fse.removeSync(`./node_modules/${n}`);
-			} catch (error) {				
+			let deleted = removeProjectPackage(n);
+			if (!deleted) {
 				printError(`There was an error while updating ${n}`);
 				return;
 			}
