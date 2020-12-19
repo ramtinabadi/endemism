@@ -8,9 +8,27 @@ import fs from 'fs';
 import {Command} from "commander";
 import fse from 'fs-extra';
 
+
+
+// Internal
+import {
+	copyPackageToProject,
+	getProjectDetail,
+	printError,
+	printSuccess,
+	readRegistry,
+	registerPackage,
+	RegsitryEntry,
+	writeRegistry,
+	doesPackageExists
+} from './utils';
+
+
+
+
 let registryName = '.endemism_registry';
-let globalRegistry = os.homedir() + '/' + registryName
-let projectRegistry = './' + registryName;
+let globalRegistryURL = os.homedir() + '/' + registryName
+let projectRegistryURL = './' + registryName;
 let program = new Command();
 
 
@@ -29,7 +47,7 @@ program
 		let data: {[key: string]: RegsitryEntry};
 		
 		// Getting the appropriate registry based on the given option
-		data = readRegistry(mode);
+		data = readRegistry(mode, globalRegistryURL, projectRegistryURL);
 
 		// Inform the user that the registry is empty
 		if (data == null || data == {} || Object.keys(data).length == 0) {
@@ -59,7 +77,7 @@ program
 			printError("The 'package.json' file could not be found.");
 			console.log("Make sure to call the 'register' command only in your node project folder");
 		}else {
-			registerPackage(projectDetail.name, process.cwd(), projectDetail.version);
+			registerPackage(projectDetail.name, process.cwd(), projectDetail.version, globalRegistryURL, projectRegistryURL);
 		}		
 	});
 
@@ -72,7 +90,7 @@ program
 	.command('deregister [name]')
 	.description("Deregisters the current node project (or project with the give name) and removes it from the global registry")
 	.action((name: string) => {
-		let data = readRegistry("global");
+		let data = readRegistry("global", globalRegistryURL, projectRegistryURL);
 
 		if (data == null) {
 			printError("The target package is not registered");
@@ -92,7 +110,7 @@ program
 
 		if (name in data) {
 			delete data[name];
-			let success = writeRegistry(data, "global");
+			let success = writeRegistry(data, "global", globalRegistryURL, projectRegistryURL);
 			if (success) printSuccess(`${name} is removed from the global registry`);
 			else printError(`There has been an error in removing ${name} from the global registry`);
 		}else {
@@ -113,23 +131,19 @@ program
 
 
 		function _installPackage(n: string, gr: any, pr: any) {
+
+			let exists = doesPackageExists(n, true);
 			
-			let hasNodeModules = fs.existsSync('./node_modules');
-			if (!hasNodeModules) {
-				let madeNodeModules = fs.mkdirSync('./node_modules');
-			}else {
-				let alreadyExistsinNodeModules = fs.existsSync('./node_modules/' + n);
-				if (alreadyExistsinNodeModules) {
-					printError(`A directory called ${n} already exists among node modules!`);
-					return;
-				}
+			if (exists) {
+				printError(`A directory called ${n} already exists among node modules!`);
+				return pr;
 			}
 
 			// Copying the package from the global registry to the project's node_modules
 			let isCopied = copyPackageToProject(n, gr);
 			if (!isCopied) {
 				printError(`There was an error while updating ${n}`);
-				return;
+				return pr;
 			}
 
 			// Updating the package's version in the project's registry
@@ -142,7 +156,7 @@ program
 
 
 		// Reading the global registry
-		let data = readRegistry("global");
+		let data = readRegistry("global", globalRegistryURL, projectRegistryURL);
 
 		if (data == null) {
 			printError("There was a problem reading the global registry!");
@@ -159,10 +173,10 @@ program
 
 
 		// Reading the local registry of the project
-		let projectRegistry = readRegistry("project");
+		let projectRegistry = readRegistry("project", globalRegistryURL, projectRegistryURL);
 		if (projectRegistry == null) {
-			let madeProjectRegistry = writeRegistry({}, "project");
-			if (madeProjectRegistry) projectRegistry = readRegistry("project");
+			let madeProjectRegistry = writeRegistry({}, "project", globalRegistryURL, projectRegistryURL);
+			if (madeProjectRegistry) projectRegistry = readRegistry("project", globalRegistryURL, projectRegistryURL);
 			else {
 				printError("There was an error while reading the project's registry!");
 				return;
@@ -186,7 +200,7 @@ program
 			projectRegistry = _installPackage(p, data, projectRegistry);
 		})
 
-		writeRegistry(projectRegistry, "project");
+		writeRegistry(projectRegistry, "project", globalRegistryURL, projectRegistryURL);
 
 
 	});
@@ -202,7 +216,7 @@ program
 	.action((name: string) => {
 		
 		// Getting the content of the project's registry
-		let data = readRegistry("project");
+		let data = readRegistry("project", globalRegistryURL, projectRegistryURL);
 
 		// Checking if the target package is in the project's registry
 		if (data == null || name in data == false) {
@@ -223,7 +237,7 @@ program
 
 		// Removing the package from the project's entry
 		delete data[name];
-		writeRegistry(data, "project");
+		writeRegistry(data, "project", globalRegistryURL, projectRegistryURL);
 
 		
 		printSuccess(`${name} is successfully uninstalled!`);
@@ -244,7 +258,7 @@ program
 		function _updateProject(n: string, projectRegistry: any) {
 			
 			// Getting the content of the global's registry			
-			let globalRegistry = readRegistry("global");
+			let globalRegistry = readRegistry("global", globalRegistryURL, projectRegistryURL);
 
 			// Checking if the target package is in the project's registry
 			if (projectRegistry == null || n in projectRegistry == false) {
@@ -287,7 +301,7 @@ program
 
 			// Updating the package's version in the project's registry
 			projectRegistry[n] = globalRegistry[n].version;
-			writeRegistry(projectRegistry, "project");
+			writeRegistry(projectRegistry, "project", globalRegistryURL, projectRegistryURL);
 
 		
 			printSuccess(`${n} is successfully updated to ${globalRegistry[n].version}!`);
@@ -302,7 +316,7 @@ program
 				return
 			}
 			globalRegistry[n].version = pd == null ? globalRegistry[n].version : pd.version;
-			writeRegistry(globalRegistry, "global");
+			writeRegistry(globalRegistry, "global", globalRegistryURL, projectRegistryURL);
 
 			printSuccess(`${n} is successfully updated in the global registry!`);
 		}
@@ -316,7 +330,7 @@ program
 
 		if (global) {
 			console.log("\nUpdating global registry...");
-			let gr = readRegistry("global");
+			let gr = readRegistry("global", globalRegistryURL, projectRegistryURL);
 			
 			if (gr == null) {
 				console.log("Global's registry is empty");				
@@ -330,7 +344,7 @@ program
 		
 		if (project) {
 			console.log("\nUpdating project registry...");
-			let pr = readRegistry("project");
+			let pr = readRegistry("project", globalRegistryURL, projectRegistryURL);
 			
 			if (pr == null) {
 				console.log("Project's registry is empty");
@@ -356,155 +370,3 @@ program.parse(process.argv);
 
 
 
-
-// Types
-type RegsitryEntry = {
-	path: string,
-	version: string
-}
-
-
-
-
-
-// Common Functions ******************************************************
-
-
-/**
- * Reads and parses the content of the global registry
- */
-function readRegistry(mode: "global" | "project") {
-	try {
-		let rawData = fs.readFileSync(mode == "global" ? globalRegistry : projectRegistry);
-		return JSON.parse(rawData.toString());
-	} catch (error) {
-		return null;
-	}	
-}
-
-
-/**
- * Reads and parses the content of the current project's registry
- */
-function writeRegistry(data: {[key: string] : string} | string, mode: "global" | "project") : boolean {
-	try {		
-		fs.writeFileSync(mode == "global" ? globalRegistry : projectRegistry, typeof data == 'string' ? data : JSON.stringify(data));
-		return true;
-	} catch (error) {
-		return false;
-	}
-}
-
-
-/**
- * Registers a package into the global registry
- * @param name The name of package to be registered in the registry
- * @param path The absolute path of package
- * @param version The version of the package
- */
-function registerPackage(name: string, path: string, version: string) {
-	// Get the existing data from the registry
-	let data: {[key: string]: RegsitryEntry} = readRegistry("global");
-	
-	// Create a registry if it cannot be found
-	if (data == null) {
-		fs.writeFileSync(globalRegistry, JSON.stringify({}));
-		data = readRegistry("global");
-	}
-
-	// Checking if the package is already registered or not
-	if (name in data) {
-
-		// Check if the package has the same version number or not.
-		if (data[name].version == version) {
-			printSuccess("The package is already registered!");
-			return;
-		}
-		else data[name].version = version;
-	}else {
-		// Adding the package to the registry for the first time
-		data[name] = {
-			path: path,
-			version: version
-		}
-	}
-	
-	fs.writeFile(globalRegistry, JSON.stringify(data), () => {
-		printSuccess(`'${name}=${version}' is successfully registered to the registry!`);		
-	});
-}
-
-
-/**
- * Tries and gets the detail of the current node package from its `package.json` file
- * If the `package.json` file does not exist or can't be read, the returned value will be null
- */
-function getProjectDetail(path: string = './') : {name: string, version: string} | null {
-	try {
-		let files = fs.readdirSync(path);
-		if (files.includes('package.json')) {
-			let packageJSONPath = path[path.length - 1] == '/' ? `${path}package.json` : `${path}/package.json`;
-			let data = fs.readFileSync(packageJSONPath);
-			let packageDetails = JSON.parse(data.toString());
-			return {name: packageDetails.name, version: packageDetails.version};
-			
-		}else {				
-			return null;
-		}
-
-	} catch (error) {		
-		return null;
-	}
-		
-}
-
-
-
-/**
- * Copies a package from the global registry into the project's node_modules
- * @param name The name of the target package
- * @param data The content of the global registry
- */
-function copyPackageToProject(name: string, data: {[key: string]: RegsitryEntry}): boolean {
-
-	try {
-		let files: fs.Dirent[] = fs.readdirSync(data[name].path, {withFileTypes: true});
-		fs.mkdirSync('./node_modules/' + name);	
-
-		files.map((file:fs.Dirent) => {				
-			if (file.name != '.git' && file.name != '.gitignore') {
-				fse.copySync(data[name].path + "/" + file.name, `./node_modules/${name}/${file.name}`);
-			}
-		});
-
-		return true;
-	} catch (error) {
-		return false;
-	}
-}
-
-
-
-
-
-
-// Debuging Functions
-
-/**
- * Prints an error message to the console with the red font color
- * @param error The error message to be printed in the console
- */
-function printError(error: string) {
-	// Follows this: https://stackoverflow.com/a/27111061/6026516
-	console.error('\x1b[31m', error ,'\x1b[0m');
-}
-
-
-/**
- * Prints an success message to the console with the green font color
- * @param success The success message to be printed in the console
- */
-function printSuccess(success: string) {
-	// Follows this: https://stackoverflow.com/a/27111061/6026516
-	console.error('\x1b[32m', success ,'\x1b[0m');
-}
