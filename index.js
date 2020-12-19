@@ -162,6 +162,7 @@ program
     }
     var deleted = utils_1.removeProjectPackage(name);
     if (!deleted) {
+        utils_1.printError("There was an error uninstalling " + name);
         return;
     }
     // Removing the package from the project's entry

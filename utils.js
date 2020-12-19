@@ -118,15 +118,17 @@ function removeProjectPackage(name) {
             return true;
         }
         catch (error) {
-            printError("There was an error while uninstalling " + name);
             return false;
         }
+    }
+    else {
+        printError("No package name " + name + " was found");
     }
     return false;
 }
 exports.removeProjectPackage = removeProjectPackage;
 function getProjectPackagePath(name) {
-    return './node_modules/' + name[0] == "@" ? name.split('/')[0] + "/" + name : name;
+    return './node_modules/' + (name[0] == "@" ? name.split('/')[0] + "/" + name : name);
 }
 exports.getProjectPackagePath = getProjectPackagePath;
 /**

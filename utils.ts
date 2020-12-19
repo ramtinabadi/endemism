@@ -125,10 +125,11 @@ export function removeProjectPackage(name: string) {
 		try {
             fse.removeSync(path);
             return true;
-		} catch (error) {				
-			printError(`There was an error while uninstalling ${name}`);
+		} catch (error) {			
 			return false;
 		}			
+    }else {
+        printError(`No package name ${name} was found`);
     }
     return false;
 }
@@ -136,7 +137,7 @@ export function removeProjectPackage(name: string) {
 
 
 export function getProjectPackagePath(name: string) {
-    return './node_modules/' + name[0] == "@" ? `${name.split('/')[0]}/${name}` : name;
+    return './node_modules/' + (name[0] == "@" ? `${name.split('/')[0]}/${name}` : name);
 }
 
 

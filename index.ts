@@ -229,6 +229,7 @@ program
 		let deleted = removeProjectPackage(name);
 
 		if (!deleted) {
+			printError(`There was an error uninstalling ${name}`);
 			return;
 		}
 
