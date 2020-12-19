@@ -1,6 +1,6 @@
 {
   "name": "endemism",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "The internal and private registry of node packages",
   "main": "index.js",
   "types": "index.d.ts",
