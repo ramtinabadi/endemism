@@ -108,7 +108,7 @@ export function doesPackageExists(name: string, makeNodeModules: boolean) {
         if (makeNodeModules) fs.mkdirSync('./node_modules');
         return false;
 	}else {
-		let alreadyExistsinNodeModules = fs.existsSync('./node_modules/' + name[0] == "@" ? `${name.split('/')[0]}/${name}` : name);
+		let alreadyExistsinNodeModules = fs.existsSync(getProjectPackagePath(name));
 		if (alreadyExistsinNodeModules) {			
 			return true;
         }
@@ -117,6 +117,10 @@ export function doesPackageExists(name: string, makeNodeModules: boolean) {
 }
 
 
+
+export function getProjectPackagePath(name: string) {
+    return './node_modules/' + name[0] == "@" ? `${name.split('/')[0]}/${name}` : name;
+}
 
 
 
