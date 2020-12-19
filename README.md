@@ -40,11 +40,16 @@ As the result of `list` command, you will get a list of registered/installed pac
 
 ### Installing packages
 The purpose of registering a package is to install them on as many projects as we like.<br>
-To install a package, move to your project and run the following command in the folder containing the `package.json` file. You need to pass the name of desired package as an argument.
+To install a package, move to your project and run the following command in the folder containing the `package.json` file. To install a specific package, you need to pass the name of desired package as an argument.
 ```bash
 endemism install foo
 ```
 Please note that if the desired package, here as an example `foo`, should be registered and a package with the same name should not be already istalled in the `node_modules` filder.
+
+After running a `npm` command, such as `npm install`, NPM will remove all the packages installed via endemism. In order to install all the packages again, you can run the following command.
+```bash
+endemism install
+```
 
 ### Uninstall Packages
 To uninstall a package from your project, run the following command in the folder containing `package.json`. You need to pass the name of the package that you want to uninstall as an argument.
