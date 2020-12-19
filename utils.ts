@@ -108,7 +108,7 @@ export function doesPackageExists(name: string, makeNodeModules: boolean) {
         if (makeNodeModules) fs.mkdirSync('./node_modules');
         return false;
 	}else {
-		let alreadyExistsinNodeModules = fs.existsSync('./node_modules/' + name);
+		let alreadyExistsinNodeModules = fs.existsSync('./node_modules/' + name[0] == "@" ? `${name.split('/')[0]}/${name}` : name);
 		if (alreadyExistsinNodeModules) {			
 			return true;
         }
