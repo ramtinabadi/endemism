@@ -107,16 +107,49 @@ program
 
 // install
 program
-	.command('install <name>')
+	.command('install [name]')
 	.description("Installs a package from the global registry into the current project")
 	.action((name: string) => {
+
+
+		function _installPackage(n: string, gr: any, pr: any) {
+			
+			let hasNodeModules = fs.existsSync('./node_modules');
+			if (!hasNodeModules) {
+				let madeNodeModules = fs.mkdirSync('./node_modules');
+			}else {
+				let alreadyExistsinNodeModules = fs.existsSync('./node_modules/' + n);
+				if (alreadyExistsinNodeModules) {
+					printError(`A directory called ${n} already exists among node modules!`);
+					return;
+				}
+			}
+
+			// Copying the package from the global registry to the project's node_modules
+			let isCopied = copyPackageToProject(n, gr);
+			if (!isCopied) {
+				printError(`There was an error while updating ${n}`);
+				return;
+			}
+
+			// Updating the package's version in the project's registry
+			pr[n] = gr[n].version;
+			printSuccess(`${n}=${gr[n].version} is successfully installed!`);
+			return pr;
+		
+			
+		}
+
+
+		// Reading the global registry
 		let data = readRegistry("global");
 
-		if (data == null || name in data == false) {
-			printError("The target package is not registered");
+		if (data == null) {
+			printError("There was a problem reading the global registry!");
 			return;
 		}
 
+		// Reading the current project
 		let projectDetail = getProjectDetail();
 		if (projectDetail == null) {
 			printError("The current folder is not a node project!");
@@ -124,6 +157,8 @@ program
 			return;
 		}
 
+
+		// Reading the local registry of the project
 		let projectRegistry = readRegistry("project");
 		if (projectRegistry == null) {
 			let madeProjectRegistry = writeRegistry({}, "project");
@@ -134,47 +169,25 @@ program
 			}			
 		}
 
-		if (data[name] in projectRegistry) {
-			printError("The target package is already installed in the project!");
-			return;
-		}
+		let toBeInstalled: string[] = [];
 
-		let hasNodeModules = fs.existsSync('./node_modules');
-		if (!hasNodeModules) {
-			let madeNodeModules = fs.mkdirSync('./node_modules');
+		if (name) {
+			if (name in data == false) {
+				printError("The target package is not registered");
+				return;
+			}
+			toBeInstalled = [name];
 		}else {
-			let alreadyExistsinNodeModules = fs.existsSync('./node_modules/' + name);
-			if (alreadyExistsinNodeModules) {
-				printError(`A directory called ${name} already exists among node modules!`);
-				return;
-			}
+			toBeInstalled = Object.keys(projectRegistry);
 		}
 
-		fs.readdir(data[name].path, {withFileTypes: true}, (err: NodeJS.ErrnoException | null, files: fs.Dirent[]) => {
-			if (err != null) {
-				printError(`There is an error while reading files!`);
-				return;
-			}
 
-			try {
-				fs.mkdirSync('./node_modules/' + name);	
-			} catch (error) {
-				printError(`There is an error while Installing ${name}`);
-				return;
-			}
-			
+		toBeInstalled.forEach(p => {
+			projectRegistry = _installPackage(p, data, projectRegistry);
+		})
 
-			files.map((file:fs.Dirent) => {				
-				if (file.name != '.git' && file.name != '.gitignore') {
-					fse.copySync(data[name].path + "/" + file.name, `./node_modules/${name}/${file.name}`);
-				}
-			});
+		writeRegistry(projectRegistry, "project");
 
-			projectRegistry[name] = data[name].version;
-			writeRegistry(projectRegistry, "project");
-
-			printSuccess(`${name}=${data[name].version} is successfully installed!`);
-		});
 
 	});
 
